@@ -1,0 +1,36 @@
+function plot_phase_portrait(F_sym, u_sym, param_sym, param_val, xrange, yrange)
+% Plot the phase portrait of a 2-D system F(u, param) with param fixed.
+%   F_sym     2x1 symbolic right-hand side
+%   u_sym     2x1 symbolic state, e.g. [S; I]
+%   param_sym continuation/parameter symbol(s) to fix
+%   param_val value(s) to substitute for param_sym
+%   xrange    [min max] for u_sym(1)
+%   yrange    [min max] for u_sym(2)
+    u_sym = u_sym(:);
+
+    Fsub = subs(F_sym, param_sym, param_val);
+    f1 = matlabFunction(Fsub(1), 'Vars', num2cell(u_sym).');
+    f2 = matlabFunction(Fsub(2), 'Vars', num2cell(u_sym).');
+
+    n = 50; % grid resolution: how finely the field is sampled
+    density = 1.5; % streamline density: how many lines streamslice draws
+    [X, Y] = meshgrid(linspace(xrange(1), xrange(2), n), linspace(yrange(1), yrange(2), n));
+    U = f1(X, Y) .* ones(size(X)); % .*ones guards a constant component
+    V = f2(X, Y) .* ones(size(X));
+
+    figure; hold on;
+    streamslice(X, Y, U, V, density);
+    xlabel(char(u_sym(1))); ylabel(char(u_sym(2)));
+    title('Phase portrait');
+    axis([xrange, yrange]);
+end
+
+lambda = 1.5; 
+mu = 0.1; 
+gamma = 1;
+
+syms S I beta
+f = 1/(1+I^2);
+F = [lambda - beta*S*I - mu*S + gamma*I;
+     beta*S*I - (mu + gamma + f)*I];
+plot_phase_portrait(F, [S; I], beta, 0.5, [0 15], [0 15]);
