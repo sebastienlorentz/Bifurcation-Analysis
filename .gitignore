@@ -3,3 +3,5 @@ docs/
 
 # MATLAB autosave files
 *.asv
+
+reproduce.m
