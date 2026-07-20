@@ -64,38 +64,26 @@ function out = trace_bifurcation_curves(F_sym, u_sym, p_sym, p_box, u_start, sta
         end
         out.hopf_curves{i}.l1 = l1;
     end
-    out.gh_points = find_gh_points(out.hopf_curves);
+    % Generalized Hopf points = where the first Lyapunov coefficient changes sign
+    % along a Hopf curve (the Hopf switches super/subcritical); detected on the
+    % finite quantity l1*|omega|.
+    out.gh_points = interp_crossings(out.hopf_curves, @(c) c.l1.*abs(c.omega));
 
-    % Bogdanov-Takens points: codim-2 points where a Hopf curve meets a fold
-    % curve, found as the zeros of the Hopf frequency along the Hopf curves
-    out.bt_points = find_bt_points(out.hopf_curves);
+    % Bogdanov-Takens points = where the Hopf frequency omega passes through zero,
+    % i.e. a Hopf curve meets a fold curve.
+    out.bt_points = interp_crossings(out.hopf_curves, @(c) c.omega);
 end
 
-% Generalized Hopf points = where the first Lyapunov coefficient changes
-% sign along a Hopf curve (the Hopf switches super/subcritical). Detection uses
-% the finite quantity l1*|omega|
-function gh = find_gh_points(hopf_curves)
-    gh = zeros(2, 0);
-    for i = 1:numel(hopf_curves)
-        test = hopf_curves{i}.l1.*abs(hopf_curves{i}.omega);
-        P = hopf_curves{i}.p;
+% Interpolate the parameter points where a scalar test quantity changes sign
+% along each Hopf curve. testfn maps a curve struct to its test vector.
+function pts = interp_crossings(curves, testfn)
+    pts = zeros(2, 0);
+    for i = 1:numel(curves)
+        test = testfn(curves{i});
+        P = curves{i}.p;
         for k = find(test(1:end-1).*test(2:end) < 0)
             s = test(k) / (test(k) - test(k+1));
-            gh(:, end+1) = (1 - s)*P(:, k) + s*P(:, k+1); 
-        end
-    end
-end
-
-% Bogdanov-Takens points = where the Hopf frequency omega passes through zero
-% Located by interpolating the parameter point at the sign change of omega.
-function bt = find_bt_points(hopf_curves)
-    bt = zeros(2, 0);
-    for i = 1:numel(hopf_curves)
-        w = hopf_curves{i}.omega;
-        P = hopf_curves{i}.p;
-        for k = find(w(1:end-1).*w(2:end) < 0)
-            s = w(k) / (w(k) - w(k+1));
-            bt(:, end+1) = (1 - s)*P(:, k) + s*P(:, k+1); 
+            pts(:, end+1) = (1 - s)*P(:, k) + s*P(:, k+1);
         end
     end
 end

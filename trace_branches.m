@@ -15,7 +15,10 @@ function out = trace_branches(sys, x0, lambda0, lambda_range, step_size, max_ste
     % lambda leaves its range or the state leaves the allowed box.
     prob.residual = @(z) sys.F(z(1:end-1), z(end));
     prob.jacobian = @(z) [sys.Fu(z(1:end-1), z(end)), sys.Flambda(z(1:end-1), z(end))];
-    stop = @(z) z(end) < lambda_range(1) || z(end) > lambda_range(2) || any(z(1:end-1) < state_range(:, 1)) || any(z(1:end-1) > state_range(:, 2));
+    % box_tol lets a branch sit exactly on a boundary (e.g. the disease-free
+    % I = 0 branch) without a tiny fsolve residual pushing it out of the box
+    box_tol = 1e-6;
+    stop = @(z) z(end) < lambda_range(1) || z(end) > lambda_range(2) || any(z(1:end-1) < state_range(:, 1) - box_tol) || any(z(1:end-1) > state_range(:, 2) + box_tol);
 
     % land on the curve before we start
     x0 = fsolve(@(u) sys.F(u, lambda0), x0(:), optimset('Display', 'off'));
@@ -129,20 +132,21 @@ function t = initial_tangent(x0, lambda0, Fx, Flambda, decreasing)
     end
 end
 
-% Locate folds and Hopf points along an already-traced branch.
+% Locate folds and Hopf points along an already-traced branch. Works in any
+% dimension: the Hopf test function is det(2J (.) I), the determinant of the
+% bialternate product, whose eigenvalues are the pairwise sums lambda_i+lambda_j.
+% It vanishes when a pair reaches the imaginary axis (Hopf) or a real pair sums
+% to zero (neutral saddle); the two are told apart from the eigenvalues at the
+% crossing. For n = 2 the bialternate product is the 1-by-1 matrix [trace(J)],
+% so this reduces to the old trace(J) = 0 test.
 function [folds, hopfs] = detect_bifurcations(points, tangents, Fu, svec, win_arc)
-% Only valid for 2-D systems. A Hopf is trace(J) = 0 with det(J) > 0, i.e. a
-% complex pair sitting on the imaginary axis.
     N = size(points, 2);
     n = size(points, 1) - 1;
     t_lam = tangents(end, :); % lambda-component of the tangent
 
-    trJ = zeros(1, N); % trace(J) - the Hopf test function
-    detJ = zeros(1, N); % det(J) - tells a Hopf (det>0) from a neutral saddle (det<0)
+    psi = zeros(1, N); % det(2J (.) I), the general Hopf test function
     for k = 1:N
-        J = Fu(points(1:n, k), points(n+1, k));
-        trJ(k) = trace(J);
-        detJ(k) = det(J);
+        psi(k) = det(bialt(Fu(points(1:n, k), points(n+1, k))));
     end
 
     % fold = lambda-component of the tangent flips sign
@@ -150,23 +154,67 @@ function [folds, hopfs] = detect_bifurcations(points, tangents, Fu, svec, win_ar
     fold_br = filter_sustained(t_lam, fold_br, svec, win_arc);
     folds = interp_bif(points, t_lam, fold_br);
 
-    % Hopf candidates: trace flips sign
-    hopf_br = find(trJ(1:N-1).*trJ(2:N) < 0);
-    hopf_br = filter_sustained(trJ, hopf_br, svec, win_arc);
+    % Hopf candidates: the test function flips sign
+    hopf_br = find(psi(1:N-1).*psi(2:N) < 0);
+    hopf_br = filter_sustained(psi, hopf_br, svec, win_arc);
 
-    % throw out the neutral saddles (det < 0 at the crossing), keep real Hopfs
+    % keep crossings where the pair reaching the axis is complex (a Hopf); drop
+    % real pairs summing to zero (neutral saddles)
     keep = false(1, numel(hopf_br));
     for i = 1:numel(hopf_br)
         k = hopf_br(i);
-        s = trJ(k) / (trJ(k)-trJ(k+1));
-        dcross = (1-s)*detJ(k) + s*detJ(k+1); % det interpolated at the crossing
-        keep(i) = dcross > 0;
+        keep(i) = hopf_pair_is_complex(Fu(points(1:n, k), points(n+1, k)));
     end
     hopf_br = hopf_br(keep);
-    hopfs = interp_bif(points, trJ, hopf_br);
+    hopfs = interp_bif(points, psi, hopf_br);
 end
 
-% Drop sign-change brackets that don't persist - i.e. numerical noise.
+% True if the eigenvalue pair nearest to summing to zero is complex, i.e. the
+% sign change in det(2J (.) I) is a Hopf rather than a neutral saddle.
+function tf = hopf_pair_is_complex(J)
+    ev = eig(J);
+    n = numel(ev);
+    S = ev + ev.'; % S(i,j) = lambda_i + lambda_j
+    S(1:n+1:end) = inf; % ignore the diagonal (i = j)
+    [~, w] = min(abs(S(:)));
+    [i, ~] = ind2sub([n, n], w);
+    tf = abs(imag(ev(i))) > 1e-6;
+end
+
+% Bialternate product 2A (.) I: an m-by-m matrix, m = n(n-1)/2, indexed by pairs
+% (p,q) with p > q. Its eigenvalues are the sums lambda_i + lambda_j over i > j,
+% so it is singular exactly at a Hopf or a neutral saddle (Kuznetsov, Elements
+% of Applied Bifurcation Theory).
+function B = bialt(A)
+    n = size(A, 1);
+    idx = nchoosek(1:n, 2); % rows [q p] with q < p
+    m = size(idx, 1);
+    B = zeros(m, m);
+    for a = 1:m
+        q = idx(a, 1);
+        p = idx(a, 2);
+        for b = 1:m
+            s = idx(b, 1);
+            r = idx(b, 2);
+            if r == q
+                v = -A(p, s);
+            elseif r ~= p && s == q
+                v = A(p, r);
+            elseif r == p && s == q
+                v = A(p, p) + A(q, q);
+            elseif r == p && s ~= q
+                v = A(q, s);
+            elseif s == p
+                v = -A(q, r);
+            else
+                v = 0;
+            end
+            B(a, b) = v;
+        end
+    end
+end
+
+% Drop sign-change brackets that don't persist, i.e. numerical noise.
 function kept = filter_sustained(test, brackets, svec, win_arc)
 % Keep only brackets whose sign persists for at least win_arc of arclength on both
 % sides, rejecting single-point noise flips. svec is the cumulative arclength.
@@ -288,9 +336,9 @@ function T = branch_point_tangents(sys, x_star, lam_star)
     Hul = sys.Fulambda(x_star, lam_star);
     Hll = sys.Flambdalambda(x_star, lam_star);
 
-    a = psi'*contract(Huu, phi, phi);
-    b = psi'*(Hul*phi + contract(Huu, phi, v));
-    c = psi'*(Hll + Hul*v + contract(Huu, v, v));
+    a = psi'*bilin(Huu, phi, phi);
+    b = psi'*(Hul*phi + bilin(Huu, phi, v));
+    c = psi'*(Hll + Hul*v + bilin(Huu, v, v));
 
     if abs(a) <= 1e-6*max([abs(b), abs(c), 1])
         % pitchfork: smooth branch, plus the bifurcating one along phi
@@ -306,13 +354,4 @@ function T = branch_point_tangents(sys, x_star, lam_star)
     end
 
     T = [tau1 / norm(tau1), tau2 / norm(tau2)];
-end
-
-% Contract a 3-D tensor with two vectors: w(i) = a'*T(i,:,:)*b.
-function w = contract(T, a, b)
-    n = size(T, 1);
-    w = zeros(n, 1);
-    for i = 1:n
-        w(i) = a'*squeeze(T(i, :, :))*b;
-    end
 end

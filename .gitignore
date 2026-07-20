@@ -1,0 +1,5 @@
+# internal documentation
+docs/
+
+# MATLAB autosave files
+*.asv

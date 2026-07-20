@@ -1,8 +1,8 @@
 % First Lyapunov coefficient at a Hopf point, via Kuznetsov's projection formula
 % Its sign fixes the criticality of the Hopf:
-%   l1 < 0 supercritical - a stable limit cycle is born
-%   l1 > 0 subcritical - an unstable cycle surrounds the equilibrium
-%   l1 = 0 degenerate - a generalized Hopf point
+%   l1 < 0 supercritical: a stable limit cycle is born
+%   l1 > 0 subcritical: an unstable cycle surrounds the equilibrium
+%   l1 = 0 degenerate: a generalized Hopf point
 function l1 = lyapunov_coefficient(lsys, u, p)
     u = u(:);
     n = lsys.n;
@@ -15,7 +15,7 @@ function l1 = lyapunov_coefficient(lsys, u, p)
     [V, D] = eig(A);
     ev = diag(D);
     cand = find(imag(ev) > 0);
-    if isempty(cand) % no imaginary pair - not a Hopf point
+    if isempty(cand) % no imaginary pair, not a Hopf point
         l1 = NaN;
         return
     end
@@ -38,15 +38,6 @@ function l1 = lyapunov_coefficient(lsys, u, p)
     h20 = (2i*omega*eye(n)-A) \ bilin(Fuu, q, q);
     g21 = pl'*trilin(Fuuu, q, q, qb) - 2*(pl'*bilin(Fuu, q, h11)) + pl'*bilin(Fuu, qb, h20);
     l1 = real(g21) / (2*omega);
-end
-
-% Bilinear form B(a,b)_i = sum_{j,k} Fuu(i,j,k) a_j b_k (no conjugation).
-function w = bilin(T, a, b)
-    n = size(T, 1);
-    w = zeros(n, 1);
-    for i = 1:n
-        w(i) = a.'*reshape(T(i, :, :), [n, n])*b;
-    end
 end
 
 % Trilinear form C(a,b,c)_i = sum_{j,k,l} Fuuu(i,j,k,l) a_j b_k c_l.

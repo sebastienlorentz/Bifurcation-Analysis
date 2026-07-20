@@ -30,17 +30,8 @@ function out = trace_hopf_curve(hsys, u0, p0, p_box, step_size, max_steps)
     land = @(z) [prob.residual(z); z(end) - p0(2)];
     z0 = fsolve(land, [u0; qR0; qI0; om0; p0], optimset('Display', 'off'));
 
-    % initial tangent = null direction of the augmented Jacobian
-    t0 = null(prob.jacobian(z0));
-    t0 = t0(:, 1) / norm(t0(:, 1));
-
-    % stop once either parameter leaves its box
-    stop = @(z) z(end-1) < p_box(1, 1) || z(end-1) > p_box(1, 2) || z(end) < p_box(2, 1) || z(end) > p_box(2, 2);
-
-    % follow the curve both ways from the start point
-    fwd = pseudo_arclength(prob, z0, t0, step_size, max_steps, stop);
-    bwd = pseudo_arclength(prob, z0, -t0, step_size, max_steps, stop);
-    pts = [fliplr(bwd(:, 2:end)), fwd]; % drop the shared start point in bwd
+    % tangent, box stop and both arcs are the shared two-parameter curve tail
+    pts = follow_curve(prob, z0, p_box, step_size, max_steps);
 
     out.u = pts(1:n, :);
     out.omega = pts(3*n+1, :);
