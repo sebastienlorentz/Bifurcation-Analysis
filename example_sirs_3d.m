@@ -18,13 +18,14 @@ delta = 0.1; % waning immunity: R -> S
 syms S I R R0
 
 u = [S; I; R];
-f = 1/(1+I^2); % saturating recovery (limited treatment capacity)
-f0 = subs(f, I, 0); % f at the disease-free equilibrium (I = 0)
+N0 = lambda/mu;         % disease-free population; states are fractions of it
+f = 1/(1 + N0^2*I^2); % saturating recovery (limited treatment capacity)
+f0 = subs(f, I, 0); % f at the disease-free equilibrium (I = 0), = 1
 
-% transmission rate expressed via the basic reproduction number
-beta = R0*mu*(mu + gamma + f0)/lambda;
+% normalized transmission via the basic reproduction number (= raw beta * N0)
+beta = R0*(mu + gamma + f0);
 
-F = [lambda - beta*S*I - mu*S + delta*R;
+F = [mu - beta*S*I - mu*S + delta*R;
      beta*S*I - (mu + gamma + f)*I;
      (gamma + f)*I - (mu + delta)*R];
 
@@ -34,8 +35,8 @@ sys = continuation_system(F, u, R0);
 % trace every branch, switching at branch points automatically. The state box
 % stops a branch once it leaves the physical region (S, I, R >= 0).
 R0Range = [0, 4];
-stateBox = [0 20; 0 20; 0 20]; % [S; I; R] min/max
-out = trace_branches(sys, [15; 0; 0], R0Range(end), R0Range, 1e-4, 1e6, true, stateBox);
+stateBox = [0 1.5; 0 1.5; 0 1.5]; % [S; I; R] min/max (fractions)
+out = trace_branches(sys, [1; 0; 0], R0Range(end), R0Range, 1e-4, 1e6, true, stateBox);
 
 % plot_branches draws the state components listed in the index vector; here all
 % three (S, I, R) vs R0. Stability, folds, Hopfs (styled by criticality) and

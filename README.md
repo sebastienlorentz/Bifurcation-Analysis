@@ -13,12 +13,16 @@ The example driver scripts apply it to an SIS epidemic model with saturated
 treatment,
 
 ```
-S' = lambda - beta*S*I - mu*S + gamma*I
-I' = beta*S*I - (mu + gamma + f(I))*I,   f(I) = 1/(1 + I^2)
+S' = mu - beta*S*I - mu*S + gamma*I
+I' = beta*S*I - (mu + gamma + f(I))*I,   f(I) = 1/(1 + N0^2*I^2)
 ```
 
-with state `u = [S; I]` and `R0 = beta*lambda / (mu*(mu + gamma + f(0)))`, but
-the core library isn't specific to it; pass any symbolic `F(u, p)`.
+written in normalized form: the states are fractions of the disease-free
+population `N0 = lambda/mu`, so the disease-free state sits at `S = 1`, the
+transmission is `beta = R0*(mu + gamma + f(0))`, and the treatment saturation
+carries the scale `N0^2`. This is a pure change of state variables, so it leaves
+every bifurcation unchanged. The core library isn't specific to the model; pass
+any symbolic `F(u, p)`.
 
 ## Requirements
 
