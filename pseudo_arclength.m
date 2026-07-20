@@ -1,5 +1,8 @@
 % Trace a 1-D solution curve of prob.residual(z)=0 by adaptive pseudo-arclength continuation.
-function [points, tangents, arclen] = pseudo_arclength(prob, z0, t0, step_size, max_steps, stop)
+% Fourth output `reason` reports why the arc ended: 'stop' (left the box),
+% 'nonfinite' (orbit couldn't be integrated, the near-homoclinic terminus),
+% 'stuck' (corrector couldn't converge even at ds_min), or 'max_steps'.
+function [points, tangents, arclen, reason] = pseudo_arclength(prob, z0, t0, step_size, max_steps, stop)
     m = numel(z0);
     points = zeros(m, max_steps);
     tangents = zeros(m, max_steps);
@@ -9,6 +12,7 @@ function [points, tangents, arclen] = pseudo_arclength(prob, z0, t0, step_size, 
     z = z0;
     t = t0;
     npts = 1; % number of points stored so far
+    reason = 'max_steps'; % overwritten below if the arc ends early
 
     newton_iters = 50;
     tol = 1e-8;
@@ -24,6 +28,7 @@ function [points, tangents, arclen] = pseudo_arclength(prob, z0, t0, step_size, 
 
     for iter = 1:max_steps
         if stop(z)
+            reason = 'stop';
             break
         end
 
@@ -39,15 +44,49 @@ function [points, tangents, arclen] = pseudo_arclength(prob, z0, t0, step_size, 
             G = @(w) [prob.residual(w); t'*(w-z)-ds];
             w = z_predict;
             converged = false;
+            nonfinite = false;
             for N = 1:newton_iters
                 g = G(w);
-                if norm(g) < tol
+                if ~all(isfinite(g))
+                    nonfinite = true; % integration failed (e.g. near-homoclinic timeout)
+                    break
+                end
+                ng = norm(g);
+                if ng < tol
                     converged = true;
                     break
                 end
-                w = w - [prob.jacobian(w); t'] \ g;
+
+                % backtracking line search along the Newton direction: an
+                % ill-conditioned Jacobian (e.g. the doubly-singular monodromy at
+                % a fold of cycles) makes a full step overshoot and diverge, so
+                % accept only the fraction that actually decreases the residual
+                dw = -[prob.jacobian(w); t'] \ g;
+                a = 1;
+                while a > 1e-6
+                    gn = G(w + a*dw);
+                    if all(isfinite(gn)) && norm(gn) < ng
+                        break
+                    end
+                    a = a/2;
+                end
+                if a <= 1e-6
+                    break % no downhill step at this ds; leave unconverged and shrink
+                end
+                w = w + a*dw;
             end
 
+            % a non-finite residual means the orbit itself couldn't be integrated;
+            % shrinking ds won't recover it, so end this arc now (keeping the
+            % points already traced, including any fold found earlier on it)
+            if nonfinite
+                reason = 'nonfinite';
+                break
+            end
+
+            % a merely unconverged step (ill-conditioned corner near a fold, e.g.
+            % where a steep nonlinearity keeps Fu near-singular over a range) is
+            % recoverable: fall through to the shrink-and-retry path below
             bad = ~converged || norm(w - z_predict) > 2*ds;
 
             % tangent for the next step (null direction of the Jacobian); also
@@ -71,6 +110,7 @@ function [points, tangents, arclen] = pseudo_arclength(prob, z0, t0, step_size, 
         end
 
         if ~accepted
+            reason = 'stuck';
             break
         end
 

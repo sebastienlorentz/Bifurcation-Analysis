@@ -79,19 +79,9 @@ function [hsup, hsub] = plot_hopf_set(curves, color)
             if isempty(hsup), hsup = h; else, set(h, 'HandleVisibility', 'off'); end
             continue
         end
-        sup = c.l1 < 0;
-        % extend the supercritical mask by one point each side, so the segment
-        % spanning a sign change is still drawn - otherwise that
-        % segment is dropped from both styles, leaving a gap at the transition
-        supx = sup | [sup(2:end), false] | [false, sup(1:end-1)];
-        Xs = c.p(1, :);
-        Ys = c.p(2, :);
-        Xs(~supx) = NaN;
-        Ys(~supx) = NaN;
-        Xu = c.p(1, :);
-        Yu = c.p(2, :);
-        Xu(sup) = NaN;
-        Yu(sup) = NaN;
+        sup = c.l1 < 0; % solid where supercritical, dashed where subcritical
+        [Xs, Xu] = split_stable(c.p(1, :), sup);
+        [Ys, Yu] = split_stable(c.p(2, :), sup);
         h1 = plot(Xs, Ys, color, 'LineWidth', 1.5);
         h2 = plot(Xu, Yu, [color '--'], 'LineWidth', 1.5);
         if any(sup) && isempty(hsup), hsup = h1; else, set(h1, 'HandleVisibility', 'off'); end
