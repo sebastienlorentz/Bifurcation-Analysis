@@ -46,8 +46,22 @@ function prob = make_problem(Xref, fld, n, Ntst, Ncol, Np, A, B, gw, h)
         cols = (i-1)*Ncol + (1:Ncol+1);
         XrefDot{i} = (Xref(:, cols)*B.')/h;   % n x Ncol
     end
+    % the Jacobian's phase row depends only on the frozen basis and reference
+    % derivative, so it is accumulated once here rather than on every call
+    phase_row = zeros(1, nX);
+    for i = 1:Ntst
+        cols = (i-1)*Ncol + (1:Ncol+1);
+        for c = 1:Ncol
+            for j = 1:Ncol+1
+                cc = (cols(j)-1)*n + (1:n);
+                phase_row(cc) = phase_row(cc) + gw(c)*h*A(c, j)*XrefDot{i}(:, c).';
+            end
+        end
+    end
+
+    prob.XrefDot = XrefDot;                   % reused by the LPC extended system
     prob.residual = @(z) residual(z, fld, n, np, Ntst, Ncol, Np, A, B, gw, h, Xref, XrefDot);
-    prob.jacobian = @(z) jacobian(z, fld, n, np, Ntst, Ncol, Np, nX, A, B, gw, h, XrefDot);
+    prob.jacobian = @(z) jacobian(z, fld, n, np, Ntst, Ncol, Np, nX, A, B, h, phase_row);
 end
 
 function R = residual(z, fld, n, np, Ntst, Ncol, Np, A, B, gw, h, Xref, XrefDot)
@@ -74,12 +88,13 @@ function R = residual(z, fld, n, np, Ntst, Ncol, Np, A, B, gw, h, Xref, XrefDot)
     R(end) = phase;                           % phase condition
 end
 
-function J = jacobian(z, fld, n, np, Ntst, Ncol, Np, nX, A, B, gw, h, XrefDot)
+function J = jacobian(z, fld, n, np, Ntst, Ncol, Np, nX, A, B, h, phase_row)
     X = reshape(z(1:nX), n, Np);
     T = z(nX+1);
     p = z(nX+2:nX+1+np);
     m = Ntst*Ncol*n + n + 1;
     J = zeros(m, nX+1+np);
+    In = eye(n);
     row = 0;
     for i = 1:Ntst
         cols = (i-1)*Ncol + (1:Ncol+1);
@@ -93,7 +108,7 @@ function J = jacobian(z, fld, n, np, Ntst, Ncol, Np, nX, A, B, gw, h, XrefDot)
             for j = 1:Ncol+1
                 k = cols(j);
                 cc = (k-1)*n + (1:n);
-                J(rr, cc) = (B(c, j)/h)*eye(n) - T*Fu*A(c, j);
+                J(rr, cc) = (B(c, j)/h)*In - T*Fu*A(c, j);
             end
             J(rr, nX+1) = -Fc;                % d/dT
             J(rr, nX+1+(1:np)) = -T*Fp;       % d/dp
@@ -101,18 +116,9 @@ function J = jacobian(z, fld, n, np, Ntst, Ncol, Np, nX, A, B, gw, h, XrefDot)
         end
     end
     pr = row+(1:n);                           % periodicity
-    J(pr, 1:n) = eye(n);
-    J(pr, (Np-1)*n + (1:n)) = -eye(n);
-    for i = 1:Ntst                            % phase (independent of T, p)
-        cols = (i-1)*Ncol + (1:Ncol+1);
-        for c = 1:Ncol
-            for j = 1:Ncol+1
-                k = cols(j);
-                cc = (k-1)*n + (1:n);
-                J(end, cc) = J(end, cc) + gw(c)*h*A(c, j)*XrefDot{i}(:, c).';
-            end
-        end
-    end
+    J(pr, 1:n) = In;
+    J(pr, (Np-1)*n + (1:n)) = -In;
+    J(end, 1:nX) = phase_row;                 % phase (independent of T, p)
 end
 
 % Sample a starting profile by integrating one period from a shooting-style seed.

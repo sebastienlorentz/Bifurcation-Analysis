@@ -86,6 +86,10 @@ function pts = interp_crossings(curves, testfn)
             pts(:, end+1) = (1 - s)*P(:, k) + s*P(:, k+1);
         end
     end
+    % overlapping curves report the same crossing twice; merge coincident points
+    if ~isempty(pts)
+        pts = uniquetol(pts.', 1e-3, 'ByRows', true).';
+    end
 end
 
 % Collect [state; p1; p2] seed columns from a cell of detected bifurcation points,

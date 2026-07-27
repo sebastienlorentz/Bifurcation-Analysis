@@ -1,4 +1,4 @@
-% Find a fold-of-cycles (LPC) seed for trace_lpc_curve. At each fixed p2 slice it
+% Find a fold-of-cycles (LPC) seed for trace_lpc_collocation. At each fixed p2 slice it
 % builds the one-parameter system, traces the equilibria and the limit cycles
 % born at their Hopfs (the same chain as example_one_parameter_R0), and returns
 % the first orbit sitting at a genuine fold of cycles, where the nontrivial
@@ -22,7 +22,7 @@ function [x0, T0, p0] = find_lpc_seed(F_sym, u_sym, p_sym, p2_vals, u_start, p1_
         end
 
         % continue each Hopf's cycle on its own, inside its own try, so one
-        % fragile branch (a near-homoclinic blow-up, a shooting break-down) is
+        % fragile branch (a near-homoclinic blow-up, a failed seeding) is
         % skipped without discarding the whole slice and any fold it may hold
         H  = [br.hopfs{:}];    % [u; p1] per Hopf, flattened across branches
         l1 = [br.hopf_l1{:}];
@@ -38,10 +38,9 @@ function [x0, T0, p0] = find_lpc_seed(F_sym, u_sym, p_sym, p2_vals, u_start, p1_
             end
             j = fold_index(lc);
             if ~isempty(j)
-                z = lc.z(:, j); % [x0; T; p1]
-                x0 = z(1:end-2);
-                T0 = z(end-1);
-                p0 = [z(end); p2];
+                x0 = lc.x0(:, j);   % first mesh node of the folded orbit
+                T0 = lc.T(j);
+                p0 = [lc.lambda(j); p2];
                 fprintf('  p2 = %.3g: fold of cycles at p1 = %.4g (nontrivial multiplier = 1)\n', ...
                         p2, p0(1));
                 return
@@ -56,18 +55,16 @@ end
 % Index of a genuine fold of cycles: where the nontrivial Floquet multiplier
 % crosses +1 in the branch interior. A fold of cycles is DEFINED by this crossing
 % (a saddle-node of periodic orbits). The plain p1-turning test is not enough: it
-% is fooled by near-homoclinic shooting break-down, which reverses p1 without the
-% multiplier reaching +1, so it seeds on a non-fold and the LPC continuation can't
-% start. In 2-D one multiplier is trivially 1 (the flow direction); the other is
+% is fooled by any turn in p1 that is not a genuine fold, seeding on a non-fold so
+% the LPC continuation cannot start. In 2-D one multiplier is trivially 1 (the flow
+% direction); the other is
 % the nontrivial one whose crossing of +1 marks the fold.
 function j = fold_index(lc)
     M = lc.multipliers;
     nt = zeros(1, size(M, 2));
     for c = 1:numel(nt)
-        m = M(:, c);
-        [~, it] = min(abs(m - 1));        % the trivial multiplier (nearest 1)
-        r = m([1:it-1, it+1:end]);
-        nt(c) = real(r(1));               % the nontrivial multiplier
+        r = nontrivial_multipliers(M(:, c));
+        nt(c) = real(r(1));
     end
     g = nt - 1;
     j = find(g(1:end-1).*g(2:end) < 0, 1); % first sign change of (nt - 1) = fold

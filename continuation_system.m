@@ -1,5 +1,5 @@
 % Build the function handles and derivatives the library needs from a symbolic
-% 2-D ODE system, its state variables, and the continuation parameter.
+% n-dimensional ODE system, its state variables, and the continuation parameter.
 function sys = continuation_system(F_sym, u_sym, lambda_sym)
     u_sym = u_sym(:);
     n = numel(u_sym);

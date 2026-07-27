@@ -30,8 +30,12 @@ function out = trace_hopf_curve(hsys, u0, p0, p_box, step_size, max_steps)
     land = @(z) [prob.residual(z); z(end) - p0(2)];
     z0 = fsolve(land, [u0; qR0; qI0; om0; p0], optimset('Display', 'off'));
 
-    % tangent, box stop and both arcs are the shared two-parameter curve tail
-    pts = follow_curve(prob, z0, p_box, step_size, max_steps);
+    % A Hopf curve ends at a Bogdanov-Takens point, where omega reaches zero. The
+    % defining equations are invariant under (omega, qI) -> (-omega, -qI), so a
+    % continuation that runs through omega = 0 crosses onto the mirror branch, which
+    % projects onto the same curve in (u,p) and retraces it. Stop at the crossing.
+    % The triggering point is kept, so omega still brackets zero for BT detection.
+    pts = follow_curve(prob, z0, p_box, step_size, max_steps, @(z) z(3*n+1) <= 0);
 
     out.u = pts(1:n, :);
     out.omega = pts(3*n+1, :);

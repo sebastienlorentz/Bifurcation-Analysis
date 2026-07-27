@@ -43,8 +43,8 @@ out = trace_branches(sys, [1; 0; 0], R0Range(end), R0Range, 1e-4, 1e6, true, sta
 % branch points are all marked. Pass e.g. [1 3] to draw only S and R.
 plot_branches(out, 'R_0', R0Range, [1 2 3], {'S', 'I', 'R'});
 
-% every Hopf spawns a branch of periodic orbits; continue them all by single
-% shooting and overlay their S/I/R max/min envelopes (same idx as plot_branches)
+% every Hopf spawns a branch of periodic orbits; continue them all by orthogonal
+% collocation and overlay their S/I/R max/min envelopes (same idx as plot_branches)
 % on the diagram above, plus a companion period figure. The two Hopfs bound the
 % same cycle bubble, so 150 continuation steps per side already cover it fully;
 % the default (1e4) would grind on long past the bubble. Args after out are

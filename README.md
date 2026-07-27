@@ -5,7 +5,7 @@ n-dimensional ODE systems, built on an adaptive pseudo-arclength engine. It trac
 branches in one parameter and fold, Hopf and transcritical curves in two,
 classifies stability, and finds codimension-2 points (Bogdanov-Takens,
 generalized Hopf). It also continues the limit cycles born at Hopf points (by
-single shooting or orthogonal collocation), with Floquet stability and
+orthogonal collocation), with Floquet stability and
 fold-of-cycles detection, and continues the fold-of-cycles (LPC) curve itself in
 two parameters from the generalized-Hopf point.
 
@@ -35,7 +35,7 @@ Put all the scripts on the MATLAB path and run one of the drivers:
 
 - `example_one_parameter_R0`: equilibrium branches vs `R0`, with stability,
   folds, Hopfs and branch points marked, plus the limit cycles born at each Hopf
-  continued by single shooting (with the period vs `R0` companion figure).
+  continued by orthogonal collocation (with the period vs `R0` companion figure).
 - `example_sirs_3d`: the same one-parameter analysis for a 3-D SIRS model,
   exercising the dimension-general Hopf test, limit cycles and phase portrait
   (each drawn for the state components named in an index vector).
@@ -44,6 +44,10 @@ Put all the scripts on the MATLAB path and run one of the drivers:
 - `example_lpc_curve`: the same two-parameter diagram plus the fold-of-cycles
   (LPC) curve, seeded from a fold of cycles on a subcritical slice and continued
   back up to the generalized-Hopf point, overlaid in green.
+- `example_homoclinic_curve`: the same diagram plus the homoclinic curve in purple,
+  seeded from a moderate-period orbit on the LPC arc. Reports the saddle quantity
+  along the curve; its sign change is the resonant homoclinic the LPC curve
+  emanates from.
 - `example_phase_portrait`: phase portrait and trajectories at fixed parameters
   (projected onto any 2 states for higher-dimensional systems).
 - `example_time_series`: the states against time from given initial conditions;
@@ -70,25 +74,30 @@ Augmented continuation systems (two parameters)
 - `hopf_continuation_system`
 - `transcritical_continuation_system`
 
-Limit cycles (single shooting)
-- `shooting_system`: the periodicity + phase-condition problem `z = [x0; T; p]`,
-  with the monodromy and parameter sensitivity from one variational ODE.
-- `monodromy_integrate`: the shared augmented variational integration returning
-  `phi_T`, the monodromy `M(T)` and the parameter sensitivity.
-
 Limit cycles (orthogonal collocation)
 - `orbit_collocation_system`: the periodic-orbit BVP on a mesh of Ntst intervals
   with degree-Ncol Lagrange polynomials collocated at Gauss points; solves the
-  whole orbit at once, staying well conditioned through a fold of cycles.
+  whole orbit at once, staying well conditioned through a fold of cycles. Used for
+  both the one- and two-parameter cycle continuations.
+- `monodromy_integrate`: the augmented variational integration returning `phi_T`,
+  the monodromy `M(T)` and the parameter sensitivity. Collocation carries no
+  monodromy of its own, so Floquet multipliers still come from here, one
+  integration per stored point.
 
 Fold of cycles (LPC) in two parameters
-- `lpc_continuation_system` / `trace_lpc_curve`: the LPC curve by single
-  shooting, using the `det(M) = 1` fold condition.
-- `lpc_collocation_system` / `trace_lpc_collocation`: the same curve by
+- `lpc_collocation_system` / `trace_lpc_collocation`: the LPC curve by
   collocation with an explicit null vector, robust through the near-homoclinic
-  tail and the faster production path.
+  tail.
 - `find_lpc_seed`: sweeps parameter slices to find a fold of cycles (a +1
   Floquet crossing) to seed the LPC continuation.
+
+Homoclinic orbits in two parameters
+- `homoclinic_collocation_system`: the truncated homoclinic BVP on the same
+  collocation mesh, with the saddle's eigenvectors carried as unknowns (their
+  defining equations keep the Jacobian analytic). See
+  `docs/homoclinic_design_note.md` for why, and for the alternatives rejected.
+- `trace_homoclinic_curve`: cuts a large-period cycle at its saddle passage, lands
+  it on the BVP with one parameter pinned, and follows the curve both ways.
 
 Tracers
 - `trace_branches`: all equilibrium branches in one parameter, switching at
@@ -98,9 +107,11 @@ Tracers
 - `trace_bifurcation_curves`: finds and traces every fold/Hopf/transcritical
   curve in a parameter box, plus Bogdanov-Takens and generalized-Hopf points.
 - `trace_limit_cycle` / `trace_limit_cycles`: the limit cycle from a single Hopf
-  point in one parameter (envelope, period, Floquet multipliers, stability,
-  stopping at the homoclinic approach), and the wrapper that continues the
-  cycles from every Hopf in a `trace_branches` result.
+  point in one parameter by collocation (envelope, period, Floquet multipliers,
+  stability, stopping at the homoclinic approach), and the wrapper that continues
+  the cycles from every Hopf in a `trace_branches` result. The branch stops once
+  the trivial Floquet multiplier drifts from 1, which bounds it to where the fixed
+  mesh and the variational integration are both still trustworthy.
 
 Plotting
 - `plot_branches`: one-parameter equilibrium diagram.

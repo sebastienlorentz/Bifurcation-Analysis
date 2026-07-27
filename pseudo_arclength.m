@@ -4,9 +4,13 @@
 % 'stuck' (corrector couldn't converge even at ds_min), or 'max_steps'.
 function [points, tangents, arclen, reason] = pseudo_arclength(prob, z0, t0, step_size, max_steps, stop)
     m = numel(z0);
-    points = zeros(m, max_steps);
-    tangents = zeros(m, max_steps);
-    arclen = zeros(1, max_steps); % cumulative arclength at each stored point
+    % grown by doubling rather than sized from max_steps: callers pass caps of 1e5
+    % to 1e6 while an arc stores a few hundred points, so preallocating the cap
+    % zero-fills tens of MB per arc and throws it away at the truncation below
+    cap = min(max_steps, 1024);
+    points = zeros(m, cap);
+    tangents = zeros(m, cap);
+    arclen = zeros(1, cap); % cumulative arclength at each stored point
     points(:, 1) = z0;
     tangents(:, 1) = t0;
     z = z0;
@@ -117,6 +121,12 @@ function [points, tangents, arclen, reason] = pseudo_arclength(prob, z0, t0, ste
         z = w;
         t = t_new; % last row of the bordered system pins the sign
         npts = iter+1;
+        if npts > cap
+            cap = 2*cap;
+            points(:, cap) = 0;
+            tangents(:, cap) = 0;
+            arclen(cap) = 0;
+        end
         points(:, npts) = z;
         tangents(:, npts) = t;
         arclen(npts) = arclen(npts-1)+ds;

@@ -4,12 +4,14 @@
 %   P' = jac(X, p) * P + dpar(X,p) P(0) = 0        param sensitivity (dim x nparam)
 % and return the endpoint values X(T), M(T) = dX(T)/dX0, P(T) = dX(T)/dp.
 % rhs, jac and dpar are handles of (X, p); p is the parameter vector (length
-% nparam). This is the shared engine for the shooting (limit-cycle) and the
-% fold-of-cycles continuation systems.
+% nparam). Sole caller is trace_limit_cycle, which uses MT for the Floquet
+% multipliers: collocation solves the orbit but carries no monodromy of its own.
+% The P block is a leftover from the superseded shooting formulation, which needed
+% the parameter sensitivity in its residual; nothing reads PT today.
 function [XT, MT, PT] = monodromy_integrate(rhs, jac, dpar, dim, nparam, X0, T, p)
     t_start = tic;
-    % tol below the pseudo_arclength corrector target (1e-8): the shooting/LPC
-    % residual can't be driven under the integration noise floor, so the floor
+    % tol below the pseudo_arclength corrector target (1e-8): a residual that
+    % depends on this integration can't be driven under its noise floor, so the floor
     % must sit beneath the tolerance the corrector has to reach
     o = odeset('RelTol', 1e-9, 'AbsTol', 1e-11, ...
                'Events', @(t, y) blowup_event(y, dim), ...

@@ -1,6 +1,6 @@
 % One-parameter bifurcation analysis of the SIS model in R0: the equilibrium
 % branches (with stability, folds, Hopfs and branch points), then the limit
-% cycles born at each Hopf, continued by single shooting and overlaid on the
+% cycles born at each Hopf, continued by orthogonal collocation and overlaid on the
 % same diagram. 
 
 lambda = 1.5;
@@ -32,8 +32,8 @@ out = trace_branches(sys, [1; 0], R0Range(end), R0Range, 1e-4, 1e6, true, stateB
 
 plot_branches(out, 'R_0', R0Range, [1 2], {'S', 'I'});
 
-% every Hopf spawns a branch of periodic orbits; continue them all by single
-% shooting (seeded from the Hopfs in out) and overlay their S/I max/min
+% every Hopf spawns a branch of periodic orbits; continue them all by orthogonal
+% collocation (seeded from the Hopfs in out) and overlay their S/I max/min
 % envelopes on the diagram above, plus a companion period figure. Each branch
 % stops itself at the Hopf and at the homoclinic approach.
 lcs = trace_limit_cycles(sys, out);

@@ -1,5 +1,6 @@
-% Fold-of-cycles (LPC) continuation by orthogonal collocation, the robust
-% replacement for the single-shooting lpc_continuation_system. A fold of cycles is
+% Fold-of-cycles (LPC) continuation by orthogonal collocation. This replaced an
+% earlier single-shooting formulation, which stalled in the near-homoclinic tail
+% where the periodicity block M - I goes singular. A fold of cycles is
 % a periodic orbit at which the cycle Jacobian G_W (of the collocation BVP w.r.t
 % the orbit unknowns W = [X; T]) is singular. Rather than the shooting condition
 % det(M) = 1, which makes the periodicity block M - I singular and wrecks the
@@ -7,7 +8,7 @@
 %       R(W, p)      = 0     cycle collocation BVP            (nW)
 %       G_W(W, p) V  = 0     V spans ker G_W (the fold)       (nW)
 %       V'V - 1      = 0     normalisation                    (1)
-% in the two parameters p = (p1, p2). The unknown is Z = [W; p; V]. Everything is
+% in the two parameters p = (p1, p2). The unknown is Z = [W; V; p]. Everything is
 % algebraic (no ODE integration) and the Jacobian is fully analytic. The second-
 % derivative blocks d(G_W V)/dW and d(G_W V)/dp come from the field tensors in d
 % (bifurcation_derivatives: Fuu, Fup1, Fup2). make_problem(Xref) returns the
@@ -31,11 +32,7 @@ function prob = make_problem(Xref, d, csys)
     n = d.n; Np = csys.Np; nX = n*Np; nW = nX + 1;
     A = csys.A; B = csys.B; gw = csys.gw; h = csys.h; Ntst = csys.Ntst; Ncol = csys.Ncol;
     orbit = csys.make_problem(Xref);
-    XrefDot = cell(1, Ntst);                  % reference dx/dtau at Gauss points
-    for i = 1:Ntst
-        cols = (i-1)*Ncol + (1:Ncol+1);
-        XrefDot{i} = (Xref(:, cols)*B.')/h;
-    end
+    XrefDot = orbit.XrefDot;                  % reference dx/dtau, from the cycle problem
     prob.residual = @(Z) res(Z, orbit, d, n, Np, nX, nW, Ntst, Ncol, A, B, gw, h, XrefDot);
     prob.jacobian = @(Z) jac(Z, orbit, d, n, Np, nX, nW, Ntst, Ncol, A);
     prob.orbit = orbit;
