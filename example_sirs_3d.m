@@ -19,11 +19,9 @@ syms S I R R0
 
 u = [S; I; R];
 N0 = lambda/mu;         % disease-free population; states are fractions of it
-f = 1/(1 + N0^2*I^2); % saturating recovery (limited treatment capacity)
-f0 = subs(f, I, 0); % f at the disease-free equilibrium (I = 0), = 1
-
-% normalized transmission via the basic reproduction number (= raw beta * N0)
-beta = R0*(mu + gamma + f0);
+f = 1/(1 + N0^2*I^2);   % treatment saturation carries the population scale
+f0 = subs(f, I, 0);     % f at the disease-free equilibrium (I = 0), = 1
+beta = R0*(mu + gamma + f0); % normalized transmission (= raw beta * N0)
 
 F = [mu - beta*S*I - mu*S + delta*R;
      beta*S*I - (mu + gamma + f)*I;

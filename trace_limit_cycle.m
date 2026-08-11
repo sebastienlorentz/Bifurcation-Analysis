@@ -5,13 +5,9 @@
 % l1 is the first Lyapunov coefficient at the Hopf (its sign sets which side the
 % cycle lives and the cycle's stability); dlambda is the initial parameter offset.
 % Returns the max/min envelope of each state, the period, and Floquet multipliers
-% along the branch, ready to overlay on the diagram from trace_branches.
-%
-% ponytail: Floquet multipliers still come from monodromy_integrate, one variational
-% integration per stored point, rather than from the collocation discretisation.
-% That keeps the stability markings on the well-tested path; the collocation route
-% (a structured eigenproblem on the Jacobian blocks) is the upgrade if the per-point
-% integration ever dominates.
+% along the branch, ready to overlay on the diagram from trace_branches. Floquet
+% multipliers come from monodromy_integrate, one variational integration per stored
+% point, since collocation carries no monodromy of its own.
 function out = trace_limit_cycle(sys, u_H, lambda_H, l1, dlambda, step_size, max_steps, lambda_range, T_cap, stop_on_fold, Ntst, Ncol)
     n = sys.n;
     u_H = u_H(:);
@@ -31,6 +27,9 @@ function out = trace_limit_cycle(sys, u_H, lambda_H, l1, dlambda, step_size, max
     % and both directions before scanning. Cuts a successful seed from minutes to
     % the handful of points up to the first fold. Off by default (full branch).
     if nargin < 10 || isempty(stop_on_fold); stop_on_fold = false;     end
+    % accuracy gate: how far the trivial Floquet multiplier may drift from 1 before the
+    % branch is stopped (see the stop function below)
+    drift_tol = 1e-2;
 
     % side where the cycle lives: amplitude^2 ~ -sigma/l1 > 0, so the Hopf
     % eigenpair's real part sigma has sign opposite to l1 (see side_sign)
@@ -125,7 +124,7 @@ function out = trace_limit_cycle(sys, u_H, lambda_H, l1, dlambda, step_size, max
     function tf = stop(z)
         M = mono(z);
         tf = z(end) < lambda_range(1) || z(end) > lambda_range(2) ...
-           || z(nX+1) > T_cap*T0 || min(abs(eig(M) - 1)) > 1e-2 ...
+           || z(nX+1) > T_cap*T0 || min(abs(eig(M) - 1)) > drift_tol ...
            || profile_amp(reshape(z(1:nX), n, Np)) < amp_floor;
         if stop_on_fold && ~tf
             nt = nontrivial_multipliers(eig(M));
@@ -188,9 +187,7 @@ end
 % Monodromy at a collocation point, by one variational integration from the first
 % mesh node. The collocation problem carries no monodromy of its own.
 function M = monodromy_of(sys, z, n, nX)
-    [~, M] = monodromy_integrate(@(x, l) sys.F(x, l), @(x, l) sys.Fu(x, l), ...
-                                 @(x, l) sys.Flambda(x, l), n, 1, ...
-                                 z(1:n), z(nX+1), z(nX+2));
+    [~, M] = monodromy_integrate(sys.F, sys.Fu, n, z(1:n), z(nX+1), z(nX+2));
 end
 
 % Upward section crossings (event 1, non-terminal) to read the period, plus a

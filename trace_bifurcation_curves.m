@@ -36,9 +36,9 @@ function out = trace_bifurcation_curves(F_sym, u_sym, p_sym, p_box, u_start, sta
     for pv = linspace(p_box(2, 1), p_box(2, 2), n_slices)
         sys = continuation_system(subs(F_sym, p_sym(2), pv), u_sym, p_sym(1));
         out = trace_branches(sys, u_start, seed_hi, [seed_lo seed_hi], seed_step, seed_max, true, state_box);
-        fold_seeds = [fold_seeds, seeds_from(out.folds, n, pv, p_box(1, :))]; 
-        hopf_seeds = [hopf_seeds, seeds_from(out.hopfs, n, pv, p_box(1, :))]; 
-        bp_seeds = [bp_seeds, seeds_from({out.branch_points}, n, pv, p_box(1, :))]; 
+        fold_seeds = [fold_seeds, seeds_from(out.folds, n, pv, p_box(1, :))];
+        hopf_seeds = [hopf_seeds, seeds_from(out.hopfs, n, pv, p_box(1, :))];
+        bp_seeds = [bp_seeds, seeds_from({out.branch_points}, n, pv, p_box(1, :))];
     end
 
     % continue each seed into a curve, skipping seeds already on a traced curve
@@ -101,7 +101,7 @@ function seeds = seeds_from(cells, n, pv, p1_range)
         for j = 1:size(B, 2)
             p1 = B(end, j);
             if p1 >= p1_range(1) && p1 <= p1_range(2)
-                seeds(:, end+1) = [B(1:n, j); p1; pv]; 
+                seeds(:, end+1) = [B(1:n, j); p1; pv];
             end
         end
     end
@@ -116,7 +116,7 @@ function curves = continue_seeds(seeds, n, p_box, tracer)
         if on_existing_curve(p0, curves, p_box)
             continue
         end
-        curves{end+1} = tracer(u0, p0); 
+        curves{end+1} = tracer(u0, p0);
     end
 end
 

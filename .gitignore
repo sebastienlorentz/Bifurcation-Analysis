@@ -1,7 +1,8 @@
-# internal documentation
+# internal notes and generated figures
 docs/
+
+# local editor and assistant settings
+.claude/
 
 # MATLAB autosave files
 *.asv
-
-reproduce.m

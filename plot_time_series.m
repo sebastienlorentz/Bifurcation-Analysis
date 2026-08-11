@@ -13,7 +13,6 @@ function [t, Y] = plot_time_series(rhs, u0, tspan, u_sym, idx)
     o = odeset('RelTol', 1e-8, 'AbsTol', 1e-10);
 
     labels = arrayfun(@(k) char(u_sym(k)), idx, 'UniformOutput', false);
-    styles = {'-', '--', ':', '-.'}; % cycled so the states stay distinguishable
 
     for k = 1:size(u0, 1)
         [t, Y] = ode45(odefun, tspan, u0(k, :)', o);

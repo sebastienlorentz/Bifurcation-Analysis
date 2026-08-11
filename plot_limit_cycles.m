@@ -37,11 +37,12 @@ function plot_limit_cycles(lcs, param_label, idx, state_labels) %#ok<INUSD>
     for j = 1:numel(lcs)
         draw_period(lcs{j}, green, j == 1);
     end
-    xlabel(param_label);
-    ylabel('period T');
-    legend();
+    % a step up from the defaults so the figure stays readable once LaTeX scales it
+    xlabel(param_label, 'FontSize', 12);
+    ylabel('period T', 'FontSize', 12);
+    legend('FontSize', 11);
     grid on;
-    title(['Limit-cycle period vs ', param_label]);
+    title(['Limit-cycle period vs ', param_label], 'FontSize', 13);
 end
 
 % Max/min envelope of the drawn components for one cycle, plus its LPC marker,

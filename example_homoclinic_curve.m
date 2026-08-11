@@ -1,9 +1,11 @@
-% Two-parameter homoclinic curve of the SIS model in (R0, gamma). A homoclinic orbit
-% leaves the saddle along its unstable manifold and returns along the stable one; the
-% locus of such connections is a codim-1 curve, the global bifurcation that terminates
-% the family of limit cycles. Here we draw the fold/Hopf/transcritical curves and the
-% fold-of-cycles (LPC) curve first, then seed the homoclinic BVP from a moderate-period
-% orbit on the LPC arc and overlay the continued homoclinic curve in red.
+% Two-parameter bifurcation diagram of the SIS model in (R0, gamma) with all five curve
+% families. A homoclinic orbit leaves the saddle along its unstable manifold and returns
+% along the stable one; the locus of such connections is a codim-1 curve, the global
+% bifurcation that terminates the family of limit cycles. The fold, Hopf and
+% transcritical curves are traced first, then the fold-of-cycles (LPC) curve, and the
+% homoclinic BVP is seeded from a moderate-period orbit on the LPC arc.
+%
+% Writes docs/figures/homoclinic_curve.pdf.
 
 lambda = 1.5;
 mu = 0.1;
@@ -14,22 +16,26 @@ u = [S; I];
 p = [R0; gamma];
 N0 = lambda/mu;         % disease-free population; states are fractions of it
 f = 1/(1 + N0^2*I^2);   % treatment saturation carries the population scale
-f0 = subs(f, I, 0);
-beta = R0*(mu + gamma + f0);
+f0 = subs(f, I, 0);     % f at the disease-free equilibrium (I = 0), = 1
+beta = R0*(mu + gamma + f0); % normalized transmission (= raw beta * N0)
 
 F = [mu - beta*S*I - mu*S + gamma*I;
      beta*S*I - (mu + gamma + f)*I];
 
-pBox = [0.5 2; 0 6];
-uStart = [1; 0];
-stateBox = [0 3; 0 3];
-invIdx = 2;
+pBox = [0.5 2; 0 6];   % [R0 range; gamma range]
+uStart = [1; 0];       % disease-free equilibrium (normalized), valid on every slice
+stateBox = [0 3; 0 3]; % physical region (fractions), stops nonphysical runaways
+invIdx = 2;            % I is the invariant ("infected") coordinate
 
-% --- codim-1 curves + codim-2 points -----------------------------------------
+% --- codim-1 curves + codim-2 points ------------------------------------------
 bif = trace_bifurcation_curves(F, u, p, pBox, uStart, stateBox, 7, invIdx);
 plot_bifurcation_curves(bif, {'R_0', '\gamma'}, pBox);
 
-% --- fold-of-cycles (LPC) curve ----------------------------------------------
+% --- fold-of-cycles (LPC) curve -----------------------------------------------
+% The curve is born at the generalized Hopf point but is fragile to seed there, since
+% the cycle amplitude vanishes at it. Seed instead from slices well inside the
+% subcritical region, where the fold sits at a healthy amplitude, and let the
+% continuation carry the curve back up to the GH point.
 gGH = bif.gh_points(2, 1);
 gammaSlices = gGH - [0.6 0.4 0.9 0.3 1.2 0.2];
 gammaSlices = gammaSlices(gammaSlices > pBox(2, 1) & gammaSlices < pBox(2, 2));
@@ -37,27 +43,38 @@ gammaSlices = gammaSlices(gammaSlices > pBox(2, 1) & gammaSlices < pBox(2, 2));
 lcsys = lpc_collocation_system(F, u, p);
 [x0, T0, p0] = find_lpc_seed(F, u, p, gammaSlices, uStart, pBox(1, :), stateBox);
 lpc = trace_lpc_collocation(lcsys, x0, T0, p0, pBox, 1e-2, 1000);
-plot(lpc.p(1, :), lpc.p(2, :), 'Color', [0 0.6 0], 'LineWidth', 2, 'DisplayName', 'LPC (fold of cycles)');
+plot(lpc.p(1, :), lpc.p(2, :), 'Color', [0 0.6 0], 'LineWidth', 1.5, ...
+     'DisplayName', 'LPC (fold of cycles)');
 
-% --- homoclinic curve ---------------------------------------------------------
-% The LPC arc runs asymptotically alongside the homoclinic curve, so any far-tail
-% orbit is a valid seed. Take a moderate period rather than the largest: at T ~ 200+
-% almost all the arclength is the crawl past the saddle and a uniform mesh cannot
-% resolve the fast excursion, so the landing Newton fails.
+% --- homoclinic curve ----------------------------------------------------------
+% The LPC arc runs asymptotically alongside the homoclinic curve, so any far-tail orbit
+% is a valid seed. Take a moderate period rather than the largest: at T ~ 200+ almost
+% all the arclength is the crawl past the saddle and a uniform mesh cannot resolve the
+% fast excursion, so the landing Newton fails.
 [~, k] = min(abs(lpc.T - 60));
 hsys = homoclinic_collocation_system(F, u, p);
 Xseed = reshape(lpc.W(:, k), hsys.n, hsys.Np);
 % enough steps for the curve to reach the BT point and stop there on its own
 hom = trace_homoclinic_curve(hsys, Xseed, lpc.T(k), lpc.p(:, k), pBox, 1e-2, 800);
 
-% purple: red is the Hopf curve, green the LPC, so the homoclinic needs its own hue
-plot(hom.p(1, :), hom.p(2, :), 'Color', [0.49 0.18 0.56], 'LineWidth', 2, 'DisplayName', 'homoclinic');
-legend('Location', 'best');
+% purple: red is the Hopf curve and green the LPC, so the homoclinic needs its own hue
+plot(hom.p(1, :), hom.p(2, :), 'Color', [0.49 0.18 0.56], 'LineWidth', 1.5, ...
+     'DisplayName', 'Homoclinic');
 
 % the saddle quantity lu + ls sets which side the cycles live on: negative means the
-% bifurcating cycle is stable, positive unstable.
+% bifurcating cycle is stable, positive unstable
 fprintf('homoclinic curve: %d points, R0 %.4f..%.4f, gamma %.4f..%.4f\n', ...
         numel(hom.T), min(hom.p(1, :)), max(hom.p(1, :)), min(hom.p(2, :)), max(hom.p(2, :)));
 fprintf('truncation interval T: %.2f .. %.2f\n', min(hom.T), max(hom.T));
 fprintf('saddle quantity: %+.5f .. %+.5f\n', min(hom.lu + hom.ls), max(hom.lu + hom.ls));
 fprintf('arms ended: fwd = %s, bwd = %s\n', hom.fwd_reason, hom.bwd_reason);
+
+% Pinned canvas, then a step up in font size on top of it: exportgraphics crops tight,
+% so an inherited window size would drift between runs and LaTeX's width scaling would
+% show that up as the fonts changing size. The axis labels come from
+% plot_bifurcation_curves, so they are resized here rather than in that shared helper.
+legend('Location', 'best', 'FontSize', 12);
+title('Bifurcation diagram of the SIS model', 'FontSize', 14);
+set(gcf, 'Units', 'inches', 'Position', [1 1 10 6.2]);
+set([gca().XLabel, gca().YLabel], 'FontSize', 12);
+export_figure('homoclinic_curve');

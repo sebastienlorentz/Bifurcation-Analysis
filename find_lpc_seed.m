@@ -55,10 +55,9 @@ end
 % Index of a genuine fold of cycles: where the nontrivial Floquet multiplier
 % crosses +1 in the branch interior. A fold of cycles is DEFINED by this crossing
 % (a saddle-node of periodic orbits). The plain p1-turning test is not enough: it
-% is fooled by any turn in p1 that is not a genuine fold, seeding on a non-fold so
-% the LPC continuation cannot start. In 2-D one multiplier is trivially 1 (the flow
-% direction); the other is
-% the nontrivial one whose crossing of +1 marks the fold.
+% is fooled by any turn in p1 that is not a genuine fold, seeding on a non-fold so the
+% LPC continuation cannot start. In 2-D one multiplier is trivially 1 (the flow
+% direction) and the other is the nontrivial one whose crossing of +1 marks the fold.
 function j = fold_index(lc)
     M = lc.multipliers;
     nt = zeros(1, size(M, 2));

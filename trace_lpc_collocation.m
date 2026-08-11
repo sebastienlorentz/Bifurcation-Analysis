@@ -50,7 +50,7 @@ function out = trace_lpc_collocation(lsys, x0, T0, p0, p_box, step_size, max_ste
 
     out.p = pts(2*nW+1:2*nW+2, :);   % the LPC curve in (p1, p2)
     out.T = pts(nW, :);              % period along the curve
-    out.x = pts(1:n, :);            % first node of the cycle along the curve
+    out.x = pts(1:n, :);             % first node of the cycle along the curve
     out.W = pts(1:nX, :);            % full orbit profile, the homoclinic seed at large T
     out.fwd_reason = fwd_reason; out.fwd_steps = fwd_n;
     out.bwd_reason = bwd_reason; out.bwd_steps = bwd_n;
@@ -61,4 +61,3 @@ function a = ptp(Z, nX, n)
     I = Z(2:n:nX);
     a = max(I) - min(I);
 end
-

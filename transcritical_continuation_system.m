@@ -1,8 +1,8 @@
-% Build the transcritical continuation problem for two parameters. 
-% We use the invariant structure directly: the curve is where the transverse 
+% Build the transcritical continuation problem for two parameters.
+% We use the invariant structure directly: the curve is where the transverse
 % eigenvalue Fu(inv_idx,inv_idx) crosses zero on the subspace. The unknown is
 % z = [u; p] and the defining equations are:
-%   F(u,p) for the non-invariant components = 0 
+%   F(u,p) for the non-invariant components = 0
 %   u(inv_idx) = 0
 %   Fu(inv_idx,inv_idx) = 0
 function tsys = transcritical_continuation_system(F_sym, u_sym, p_sym, inv_idx)

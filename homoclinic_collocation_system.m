@@ -29,8 +29,9 @@
 % amplitude, measured at the node kfar farthest from the saddle at landing. A fixed e
 % would be wrong near a Bogdanov-Takens point, where the loop shrinks to nothing and
 % a constant truncation ball ends up swallowing the whole orbit.
-% ponytail: 1-D unstable manifold only. A higher-dimensional W^u needs an orthonormal
-% basis in place of the single vu, and there the Riccati approach does come back.
+%
+% The single vu limits this to a 1-D unstable manifold. A higher-dimensional W^u would
+% need an orthonormal basis in its place, and there the Riccati approach comes back.
 function hsys = homoclinic_collocation_system(F_sym, u_sym, p_sym, Ntst, Ncol)
     if nargin < 4 || isempty(Ntst); Ntst = 20; end
     if nargin < 5 || isempty(Ncol); Ncol = 4;  end
@@ -58,7 +59,7 @@ function ix = layout(n, nX)
     ix.q  = nX + 1 + (1:n);
     ix.vu = nX + 1 + n + (1:n);
     ix.lu = nX + 2 + 2*n;
-    ix.wu = nX + 2 + 2*n + (1:n);                % left eigenvector of the same lu
+    ix.wu = nX + 2 + 2*n + (1:n);                % left eigenpair; lw is carried separately, equals lu at a solution
     ix.lw = nX + 3 + 3*n;
     ix.e  = nX + 4 + 3*n;
     ix.p  = nX + 4 + 3*n + (1:2);
@@ -177,7 +178,6 @@ end
 % eigenvectors. Returns Z0 plus the truncation fraction delta and the far node kfar
 % the amplitude is measured at.
 function [Z0, delta, kfar] = seed_from_cycle(X, T, p, delta, d, Np, ix)
-    n = numel(ix.q);
     speed = vecnorm(cell2mat(arrayfun(@(k) d.F(X(:, k), p), 1:Np, 'UniformOutput', false)));
     [~, kmin] = min(speed);                      % slowest node = the saddle passage
     q = fsolve(@(x) d.F(x, p), X(:, kmin), optimoptions('fsolve', 'Display', 'off', ...
