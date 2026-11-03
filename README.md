@@ -3,7 +3,7 @@
 A small MATLAB library for continuation and bifurcation analysis of n-dimensional ODE
 systems, built on an adaptive pseudo-arclength engine. It traces equilibrium branches in
 one parameter and fold, Hopf and transcritical curves in two, classifies stability, and
-locates codimension-2 points (Bogdanov-Takens, generalized Hopf). On top of that it
+locates codimension-2 points (Bogdanov–Takens, generalized Hopf). On top of that it
 continues the limit cycles born at Hopf points by orthogonal collocation, with Floquet
 stability and fold-of-cycles detection, continues the fold-of-cycles (LPC) curve itself
 in two parameters, and continues the homoclinic orbits that terminate the cycle family.
@@ -104,7 +104,7 @@ Tracers
 - `trace_fold_curve` / `trace_hopf_curve` / `trace_transcritical_curve`: a single
   two-parameter curve from a starting point.
 - `trace_bifurcation_curves`: finds and traces every fold, Hopf and transcritical curve
-  in a parameter box, plus the Bogdanov-Takens and generalized-Hopf points.
+  in a parameter box, plus the Bogdanov–Takens and generalized-Hopf points.
 - `trace_limit_cycle` / `trace_limit_cycles`: the limit cycle from a single Hopf point in
   one parameter by collocation (envelope, period, Floquet multipliers, stability,
   stopping at the homoclinic approach), and the wrapper that continues the cycles from
